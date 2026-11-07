@@ -1,0 +1,79 @@
+{{- if .Values.mysql.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: shopkart-mysql-pvc
+  labels:
+    {{- include "shopkart.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.mysql.storage }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: shopkart-mysql
+  labels:
+    app: shopkart-mysql
+    {{- include "shopkart.labels" . | nindent 4 }}
+spec:
+  serviceName: shopkart-mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shopkart-mysql
+  template:
+    metadata:
+      labels:
+        app: shopkart-mysql
+    spec:
+      containers:
+        - name: mysql
+          image: {{ .Values.mysql.image }}
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: {{ .Values.mysql.database | quote }}
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-secrets
+                  key: DB_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-secrets
+                  key: DB_PASSWORD
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-secrets
+                  key: DB_ROOT_PASSWORD
+          resources:
+            {{- toYaml .Values.mysql.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: shopkart-mysql-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-mysql
+  labels:
+    app: shopkart-mysql
+    {{- include "shopkart.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: shopkart-mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+{{- end }}

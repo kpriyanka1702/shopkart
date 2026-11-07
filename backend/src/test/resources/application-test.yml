@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:shopkart;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+app:
+  jwt:
+    secret: test-secret-key-that-is-long-enough-32-bytes-minimum
+    expiration-ms: 3600000
+  payment:
+    secret: test-mock-gateway-signing-key
+  cors:
+    allowed-origins: http://localhost:3000

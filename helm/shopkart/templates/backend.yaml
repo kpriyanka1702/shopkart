@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkart-backend
+  labels:
+    app: shopkart-backend
+    {{- include "shopkart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: shopkart-backend
+  template:
+    metadata:
+      labels:
+        app: shopkart-backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.port }}
+          env:
+            {{- range $key, $value := .Values.backend.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-secrets
+                  key: JWT_SECRET
+            - name: PAYMENT_GATEWAY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-secrets
+                  key: PAYMENT_GATEWAY_SECRET
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shopkart-secrets
+                  key: DB_PASSWORD
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/actuator/health
+              port: {{ .Values.backend.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-backend
+  labels:
+    app: shopkart-backend
+    {{- include "shopkart.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: shopkart-backend
+  ports:
+    - port: {{ .Values.backend.port }}
+      targetPort: {{ .Values.backend.port }}

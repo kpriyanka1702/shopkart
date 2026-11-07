@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkart-frontend
+  labels:
+    app: shopkart-frontend
+    {{- include "shopkart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: shopkart-frontend
+  template:
+    metadata:
+      labels:
+        app: shopkart-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.frontend.port }}
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.frontend.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopkart-frontend
+  labels:
+    app: shopkart-frontend
+    {{- include "shopkart.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: shopkart-frontend
+  ports:
+    - port: 80
+      targetPort: {{ .Values.frontend.port }}
